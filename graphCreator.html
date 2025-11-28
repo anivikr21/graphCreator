@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Data to Chart</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: #0f172a;
+      color: #e5e7eb;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1100px;
+      margin: 24px;
+      background: #020617;
+      border-radius: 18px;
+      box-shadow: 0 20px 40px rgba(15,23,42,0.8);
+      padding: 20px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.5fr);
+      gap: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 1.6rem;
+    }
+
+    .subtitle {
+      margin: 0 0 16px;
+      font-size: 0.9rem;
+      color: #9ca3af;
+    }
+
+    label {
+      font-size: 0.85rem;
+      color: #d1d5db;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      border-radius: 12px;
+      border: 1px solid #1f2937;
+      padding: 10px;
+      resize: vertical;
+      background: #020617;
+      color: #e5e7eb;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.85rem;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 1px #3b82f6;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 10px 0 4px;
+      align-items: center;
+    }
+
+    select, input[type="file"] {
+      background: #020617;
+      border-radius: 999px;
+      border: 1px solid #1f2937;
+      padding: 6px 10px;
+      color: #e5e7eb;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    button {
+      border-radius: 999px;
+      border: none;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.06s ease, box-shadow 0.06s ease, background 0.15s ease;
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, #2563eb, #4f46e5);
+      color: white;
+      box-shadow: 0 10px 20px rgba(37, 99, 235, 0.4);
+    }
+
+    button.secondary {
+      background: #020617;
+      color: #e5e7eb;
+      border: 1px solid #1f2937;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 25px rgba(15,23,42,0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    .hint {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+
+    .chart-panel {
+      background: radial-gradient(circle at top left, #1d4ed8, #020617);
+      border-radius: 16px;
+      padding: 14px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .chart-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+      color: #e5e7eb;
+    }
+
+    .status {
+      font-size: 0.8rem;
+      color: #cbd5f5;
+    }
+
+    .error {
+      color: #fecaca;
+      font-size: 0.8rem;
+      min-height: 1em;
+    }
+
+    canvas {
+      background: rgba(15,23,42,0.7);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .badge {
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.5);
+      padding: 2px 10px;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #cbd5f5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Left: Input -->
+    <div>
+      <h1>Data → Chart Maker</h1>
+      <p class="subtitle">
+        Paste a table of data (CSV style) and instantly turn it into a chart.
+      </p>
+
+      <label for="dataInput">Paste your data (CSV format)</label>
+      <textarea id="dataInput" placeholder="Example:
+Month,Sales,Profit
+Jan,120,50
+Feb,150,65
+Mar,180,80"></textarea>
+      <div class="hint">
+        First row = headers. First column = labels (x-axis). Each other column becomes a different line or bar.
+      </div>
+
+      <div class="controls">
+        <div>
+          <label for="chartType">Chart type</label>
+          <select id="chartType">
+            <option value="line">Line</option>
+            <option value="bar">Bar</option>
+            <option value="pie">Pie (first data column)</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="fileInput">or upload CSV</label>
+          <input type="file" id="fileInput" accept=".csv,text/csv" />
+        </div>
+
+        <div style="margin-top: 18px; display:flex; gap:8px;">
+          <button class="primary" id="buildChartBtn">
+            ▶ Build Chart
+          </button>
+          <button class="secondary" type="button" id="exampleBtn">
+            Load Example
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Chart -->
+    <div class="chart-panel">
+      <div class="chart-panel-header">
+        <div class="badge">Live Preview</div>
+        <div class="status" id="statusText">Waiting for data…</div>
+      </div>
+      <div class="error" id="errorText"></div>
+      <canvas id="chartCanvas"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const dataInput = document.getElementById("dataInput");
+    const fileInput = document.getElementById("fileInput");
+    const chartTypeSelect = document.getElementById("chartType");
+    const buildChartBtn = document.getElementById("buildChartBtn");
+    const exampleBtn = document.getElementById("exampleBtn");
+    const statusText = document.getElementById("statusText");
+    const errorText = document.getElementById("errorText");
+
+    const ctx = document.getElementById("chartCanvas").getContext("2d");
+    let currentChart = null;
+
+    function parseCSV(text) {
+      const rows = text
+        .split(/\r?\n/)
+        .map(r => r.trim())
+        .filter(r => r.length > 0);
+
+      if (rows.length < 2) {
+        throw new Error("Need at least a header row and one data row.");
+      }
+
+      const splitRow = row =>
+        row
+          .split(",")
+          .map(c => c.trim())
+          .filter((c, idx, arr) => !(idx === arr.length - 1 && c === "")); // handle trailing commas
+
+      const header = splitRow(rows[0]);
+      if (header.length < 2) {
+        throw new Error("Header must have at least 2 columns (labels + one value).");
+      }
+
+      const labels = [];
+      const series = header.slice(1).map(name => ({
+        name,
+        data: []
+      }));
+
+      for (let i = 1; i < rows.length; i++) {
+        const cols = splitRow(rows[i]);
+        if (cols.length === 0) continue;
+
+        const label = cols[0] || `Row ${i}`;
+        labels.push(label);
+
+        for (let j = 1; j < header.length; j++) {
+          const raw = cols[j] ?? "";
+          const num = Number(raw);
+          series[j - 1].data.push(isNaN(num) ? null : num);
+        }
+      }
+
+      return { labels, series };
+    }
+
+    function randomRGBSeed(index) {
+      // deterministic-ish colors based on index
+      const base = (index * 97) % 255;
+      const r = (base + 70) % 255;
+      const g = (base + 140) % 255;
+      const b = (base + 210) % 255;
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    function buildChart() {
+      const raw = dataInput.value.trim();
+      if (!raw) {
+        errorText.textContent = "Please paste some data or load the example.";
+        statusText.textContent = "No data.";
+        return;
+      }
+
+      try {
+        const { labels, series } = parseCSV(raw);
+        const chartType = chartTypeSelect.value;
+
+        if (currentChart) {
+          currentChart.destroy();
+        }
+
+        let config = null;
+
+        if (chartType === "pie") {
+          if (series.length === 0) {
+            throw new Error("Need at least one data column for a pie chart.");
+          }
+          const s = series[0];
+          config = {
+            type: "pie",
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: s.name,
+                  data: s.data,
+                  backgroundColor: labels.map((_, i) => randomRGBSeed(i)),
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              plugins: {
+                legend: { position: "bottom", labels: { color: "#e5e7eb" } },
+              },
+            },
+          };
+        } else {
+          config = {
+            type: chartType,
+            data: {
+              labels,
+              datasets: series.map((s, idx) => {
+                const color = randomRGBSeed(idx);
+                return {
+                  label: s.name,
+                  data: s.data,
+                  borderColor: color,
+                  backgroundColor:
+                    chartType === "bar" ? color.replace("rgb", "rgba").replace(")", ",0.5)") : color,
+                  fill: chartType === "line" ? false : true,
+                  tension: 0.25,
+                };
+              }),
+            },
+            options: {
+              responsive: true,
+              scales: {
+                x: {
+                  ticks: { color: "#e5e7eb" },
+                  grid: { color: "rgba(148,163,184,0.3)" },
+                },
+                y: {
+                  ticks: { color: "#e5e7eb" },
+                  grid: { color: "rgba(148,163,184,0.25)" },
+                },
+              },
+              plugins: {
+                legend: {
+                  labels: { color: "#e5e7eb" },
+                },
+              },
+            },
+          };
+        }
+
+        currentChart = new Chart(ctx, config);
+        errorText.textContent = "";
+        statusText.textContent = `Chart built: ${chartType.toUpperCase()} (${labels.length} points)`;
+      } catch (err) {
+        console.error(err);
+        errorText.textContent = err.message || "Could not build chart.";
+        statusText.textContent = "Error.";
+      }
+    }
+
+    buildChartBtn.addEventListener("click", buildChart);
+
+    exampleBtn.addEventListener("click", () => {
+      dataInput.value = [
+        "Month,Sales,Profit",
+        "Jan,120,50",
+        "Feb,150,65",
+        "Mar,180,80",
+        "Apr,160,70",
+        "May,200,90",
+        "Jun,230,110"
+      ].join("\n");
+      statusText.textContent = "Example data loaded. Click “Build Chart”.";
+      errorText.textContent = "";
+    });
+
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = e => {
+        dataInput.value = e.target.result;
+        statusText.textContent = `Loaded file: ${file.name}. Click “Build Chart”.`;
+        errorText.textContent = "";
+      };
+      reader.onerror = () => {
+        errorText.textContent = "Could not read file.";
+      };
+      reader.readAsText(file);
+    });
+  </script>
+</body>
+</html>
