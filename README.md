@@ -16,4 +16,6 @@ A simple, browser-based tool for generating clean and customizable graphs using 
 3. Pick a chart type and color.  
 4. Click **Build Chart** to generate the graph.
 
-## File Structure
+##
+
+Thanks for using my website!
